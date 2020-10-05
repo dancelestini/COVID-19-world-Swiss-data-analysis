@@ -19,17 +19,15 @@ if(!require(shinythemes)) install.packages("shinythemes", repos = "http://cran.u
 library(tidyverse)
 
 # load all data sets
-dfc = read_excel("data/covid-19.3.xlsx",sheet = 1)
-dfc1 = read_csv("data/COVID_data_2020-09-19.csv")
-dfs = read_excel("data/covid_19_data_switzerland.xlsx",sheet = 1)
-dfs1 = read_excel("data/covid_19_data_switzerland.xlsx",sheet = 2)
-dfs2 = read_excel("data/covid_19_data_switzerland.xlsx",sheet = 3)
+dfs = as.data.frame(data.table::fread("https://raw.githubusercontent.com/daenuprobst/covid19-cases-switzerland/master/covid19_cases_switzerland_openzh.csv"))
+dfs1 = as.data.frame(data.table::fread("https://raw.githubusercontent.com/daenuprobst/covid19-cases-switzerland/master/covid19_fatalities_switzerland_openzh.csv"))
+dfs2 = as.data.frame(data.table::fread("https://raw.githubusercontent.com/daenuprobst/covid19-cases-switzerland/master/covid19_hospitalized_switzerland_openzh.csv"))
+dfc1 = read.csv("data/COVID_data_2020-10-02.csv")
 
 # start modifing datasets 
-names(dfc)[2:7] = c("cas","cas-cul","hos","hos-cul","dec","dec-cul")
-dfc$Date = as.Date(dfc$Date, format = "%Y-%m-%d")
-min_date = as.Date(min(dfc$Date), "%Y-%m-%d")
-max_date = as.Date(max(dfc$Date), "%Y-%m-%d")
+dfc1$date = as.Date(dfc1$date, format = "%Y-%m-%d")
+min_date = as.Date(min(dfc1$date), "%Y-%m-%d")
+max_date = as.Date(max(dfc1$date), "%Y-%m-%d")
 
 dfs$Date = as.Date(dfs$Date, format = "%Y-%m-%d")
 min_date2 = as.Date(min(dfs$Date), "%Y-%m-%d")
@@ -41,9 +39,9 @@ dfs2$Date = as.Date(dfs2$Date)
 cv_today = subset(dfc1, date == "2020-06-15")
 cv_reduced = subset(cv_today, cases >=1000)
 
-update = as.Date(max(dfc1$date))
-# Plot functions 
+update = as.Date(max(dfs$Date))
 
+# Plot functions
 
 cumulative_plots = function(mindate,outcom,event,countrys){
     start_date = as.Date(mindate) 
@@ -63,7 +61,15 @@ cumulative_plots = function(mindate,outcom,event,countrys){
         scale_x_date(limits = c(start_date,max_date2))
     
     events = event 
-    
+    # if (outcom == "Cases per 100'000"){
+    #     start_date = as.Date("2020-01-01") 
+    #     p = ggplot(data = db, aes(x =date,y = outcomes,colour = region, group = 1,))+
+    #         geom_line()+geom_point(size = 1, alpha = 0.8)+
+    #         geom_line(data=infl,aes(date,mean, color = "Influenza"))+
+    #         labs(y="Cumulative", x = "Date")+
+    #         theme(axis.title = element_text(face = "bold"))+
+    #         scale_x_date(limits = c(start_date,max_date2))
+    # }
     for (i in events){
         dates = switch (i,
                         "Start confinement" = as.numeric(as.Date("2020-03-15")),
@@ -207,6 +213,8 @@ log_plots2 = function(mindate,outcom,event,canton){
     ggplotly(p)
 }
 
+
+
 ## UI 
 ui <- bootstrapPage(
     navbarPage(theme = shinytheme("flatly"),collapsible = TRUE,"Swiss COVID-19 data analysis",id="nav",
@@ -308,7 +316,7 @@ ui <- bootstrapPage(
                             
                             tags$br(),tags$h4("Data analysis"),
                             "All over the app you could see some plots with data about the COVID-19 outbreak. The most basic analysis done as been comparing the number of total cases or new cases between country or cantons.
-                            Therefore, I also wan't to go a little but further in the analysis by adding on the plots some keys date in Switzerland. The start confinement date correspond to when the Swiss politicians decided to 
+                            Therefore, I also want to go a little but further in the analysis by adding on the plots some keys date in Switzerland. The start confinement date correspond to when the Swiss politicians decided to 
                             close all markets said not essential to the life. The first end confinement was the date where the first not essential markets start to open again. The second end of the confinement was when almost all
                             markets, schools, places where open and without to much restriction.",tags$br(),tags$br(),
                             "For conclude, we can observe that the Swiss governement was prety fast in decision taking. Despite we don't knows really the effects of this rapidity in facts. We can also now observe a quite important
@@ -316,6 +324,9 @@ ui <- bootstrapPage(
                             in the last days, the numbers of deaths is not increasing at the same speed. My explanation for this is maybe now the people that became contamined by the virus is mostly young people and by that we know that the 
                             mortality rate on this category of person is quite low.",tags$br(),tags$br(),
                             
+                            tags$h4("Code"),
+                            "All the code and the data used to create this Shiny app are available on ",tags$a(href="https://github.com/dancelestini/COVID-19-world-Swiss-data-analysis","Github"),tags$br(),tags$br(),
+                
                             tags$h4("Sources"),
                             tags$b("World COVID-19 cases data: "),tags$a(href="https://github.com/CSSEGISandData/COVID-19/tree/master/csse_covid_19_data/csse_covid_19_time_series", "COVID-19 time series data"),tags$br(),
                             tags$b("SwissCOVID-19 cases data: "),tags$a(href="https://www.corona-data.ch", "OFSP COVID-19 datasets"),tags$br(),
