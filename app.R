@@ -17,12 +17,15 @@ if(!require(shinyWidgets)) install.packages("shinyWidgets", repos = "http://cran
 if(!require(shinydashboard)) install.packages("shinydashboard", repos = "http://cran.us.r-project.org")
 if(!require(shinythemes)) install.packages("shinythemes", repos = "http://cran.us.r-project.org")
 library(tidyverse)
+library(grid)
 
 # load all data sets
 dfs = as.data.frame(data.table::fread("https://raw.githubusercontent.com/daenuprobst/covid19-cases-switzerland/master/covid19_cases_switzerland_openzh.csv"))
 dfs1 = as.data.frame(data.table::fread("https://raw.githubusercontent.com/daenuprobst/covid19-cases-switzerland/master/covid19_fatalities_switzerland_openzh.csv"))
 dfs2 = as.data.frame(data.table::fread("https://raw.githubusercontent.com/daenuprobst/covid19-cases-switzerland/master/covid19_hospitalized_switzerland_openzh.csv"))
-dfc1 = read.csv("data/COVID_data_2020-10-02.csv")
+dfs3 = as.data.frame(data.table::fread("https://raw.githubusercontent.com/daenuprobst/covid19-cases-switzerland/master/covid19_tested_switzerland_openzh.csv"))
+test = as.data.frame(data.table::fread("https://raw.githubusercontent.com/daenuprobst/covid19-cases-switzerland/master/covid19_tests_switzerland_bag.csv"))
+dfc1 = read.csv("data/COVID_data_2020-10-28.csv")
 
 # start modifing datasets 
 dfc1$date = as.Date(dfc1$date, format = "%Y-%m-%d")
@@ -35,6 +38,11 @@ max_date2 = as.Date(max(dfs$Date), "%Y-%m-%d")
 
 dfs1$Date = as.Date(dfs1$Date)
 dfs2$Date = as.Date(dfs2$Date)
+dfs3$Date = as.Date(dfs3$Date)
+test$date = as.Date(test$date)
+
+dfc2 = dfc1[dfc1$country == "Switzerland",]
+dfs4 = merge(test[,1:5],dfc2[,1:5], by = "date")
 
 cv_today = subset(dfc1, date == "2020-06-15")
 cv_reduced = subset(cv_today, cases >=1000)
@@ -56,8 +64,10 @@ cumulative_plots = function(mindate,outcom,event,countrys){
 
     p = ggplot(data = db, aes(x =date,y = outcomes,colour = region, group = 1,))+
         geom_line()+geom_point(size = 1, alpha = 0.8)+
-        labs(y="Cumulative", x = "Date")+
-        theme(axis.title = element_text(face = "bold"))+
+        labs(y="Cumulative cases", x = "Date")+
+        theme(axis.title = element_text(face = "bold"),
+              legend.text = element_text(size = 14),
+              legend.title = element_blank())+
         scale_x_date(limits = c(start_date,max_date2))
     
     events = event 
@@ -74,11 +84,13 @@ cumulative_plots = function(mindate,outcom,event,countrys){
         dates = switch (i,
                         "Start confinement" = as.numeric(as.Date("2020-03-15")),
                         "Second end confinement" = as.numeric(as.Date("2020-05-11")),
-                        "First end confinement" = as.numeric(as.Date("2020-04-27")))
+                        "First end confinement" = as.numeric(as.Date("2020-04-27")),
+                        "Second start confinement" = as.numeric(as.Date("2020-11-02")))
         
         p = p + geom_vline(xintercept = dates, color = "red", linetype = "dotted", size = 0.5)
     }
-    ggplotly(p)
+    ggplotly(p) %>%
+        layout(legend = list(orientation = "v", x = 1, y =0.5))
 }
 
 new_plots = function(mindate,outcom,event,countrys){
@@ -94,9 +106,12 @@ new_plots = function(mindate,outcom,event,countrys){
     
     p = ggplot(data = db, aes(x =date,y = outcomes,fill = region))+
         geom_bar(position="stack", stat="identity")+
-        labs(y="Cumulative", x = "Date")+
-        theme(axis.title = element_text(face = "bold"))+
+        labs(y="Cumulative cases", x = "Date")+
+        theme(axis.title = element_text(face = "bold"),
+              legend.text = element_text(size = 14),
+              legend.title = element_blank())+
         scale_x_date(limits = c(start_date,max_date2))
+
     
     events = event 
     
@@ -104,11 +119,13 @@ new_plots = function(mindate,outcom,event,countrys){
         dates = switch (i,
                         "Start confinement" = as.numeric(as.Date("2020-03-15")),
                         "Second end confinement" = as.numeric(as.Date("2020-05-11")),
-                        "First end confinement" = as.numeric(as.Date("2020-04-27")))
+                        "First end confinement" = as.numeric(as.Date("2020-04-27")),
+                        "Second start confinement" = as.numeric(as.Date("2020-11-02")))
         
         p = p + geom_vline(xintercept = dates, color = "red", linetype = "dotted", size = 0.5)
     }
-    ggplotly(p)
+    ggplotly(p) %>%
+        layout(legend = list(orientation = "v", x = 1, y =0.5))
 }
 
 log_plots = function(mindate,outcom,event,countrys){
@@ -124,8 +141,10 @@ log_plots = function(mindate,outcom,event,countrys){
     
     p = ggplot(data = db, aes(x =date,y = outcomes,colour = region, group = 1,))+
         geom_line()+geom_point(size = 1, alpha = 0.8)+
-        labs(y="Cumulative", x = "Date")+
-        theme(axis.title = element_text(face = "bold"))+
+        labs(y="Cumulative cases", x = "Date")+
+        theme(axis.title = element_text(face = "bold"),
+              legend.text = element_text(size = 14),
+              legend.title = element_blank())+
         scale_x_date(limits = c(start_date,max_date2))+
         scale_y_continuous(trans = "log10")
     
@@ -135,11 +154,13 @@ log_plots = function(mindate,outcom,event,countrys){
         dates = switch (i,
                         "Start confinement" = as.numeric(as.Date("2020-03-15")),
                         "Second end confinement" = as.numeric(as.Date("2020-05-11")),
-                        "First end confinement" = as.numeric(as.Date("2020-04-27")))
+                        "First end confinement" = as.numeric(as.Date("2020-04-27")),
+                        "Second start confinement" = as.numeric(as.Date("2020-11-02")))
         
         p = p + geom_vline(xintercept = dates, color = "red", linetype = "dotted", size = 0.5)
     }
-    ggplotly(p)
+    ggplotly(p) %>%
+        layout(legend = list(orientation = "v", x = 1, y =0.5))
 }
 
 cumulative_plots2 = function(mindate,outcom,event,canton){
@@ -150,15 +171,17 @@ cumulative_plots2 = function(mindate,outcom,event,canton){
                       "Hospitalized" = dfs2)
     
         db = outcomes %>% select(Date:CH)%>%
-            pivot_longer(.,cols = c(AG:ZH),names_to = "Canton",values_to = "Cases") 
+            pivot_longer(.,cols = c(AG:CH),names_to = "Canton",values_to = "Cases") 
         db$region = db$Canton
         db$cases = db$Cases
         db = db %>% filter(region %in% canton)
         
         p = ggplot(data = db, aes(x =Date,y = cases,colour = region, group = 1,))+
             geom_line()+
-            labs(y="Cumulative", x = "Date")+
-            theme(axis.title = element_text(face = "bold"))+
+            labs(y="Cumulative cases", x = "Date")+
+            theme(axis.title = element_text(face = "bold"),
+                  legend.text = element_text(size = 14),
+                  legend.title = element_blank())+
             scale_x_date(limits = c(start_date,max_date2))
     
     events = event 
@@ -167,15 +190,80 @@ cumulative_plots2 = function(mindate,outcom,event,canton){
         dates = switch (i,
                         "Start confinement" = as.numeric(as.Date("2020-03-15")),
                         "Second end confinement" = as.numeric(as.Date("2020-05-11")),
-                        "First end confinement" = as.numeric(as.Date("2020-04-27")))
+                        "First end confinement" = as.numeric(as.Date("2020-04-27")),
+                        "Second start confinement*" = as.numeric(as.Date("2020-11-02")))
         
-        p = p + geom_vline(xintercept = dates, color = "red", linetype = "dotted", size = 0.5)
+        p = p + geom_vline(xintercept = as.numeric(dates), color = "red", linetype = "dotted", size = 0.5)
+            #+annotate("text",x = dates,y = -1000,label = "name",color = "black",size = 5)
         
         
     }
+    h = 7.1
+    if (outcom == "Hospitalized"){
+        p = p+ geom_hline(yintercept = 160, color = "black", linetype = "dotted", size = 0.5)+
+            annotate("text",label = "Hospital limit",x = as.Date("2020-06-20", "%Y-%m-%d"),y = 170,color = "black",size = 5)
+    }
     
-    ggplotly(p)
+    ggplotly(p) %>%
+        layout(legend = list(orientation = "v", x = 1, y =0.5))
 }
+
+swiss_global2 = function(mindate,outcom,event){
+    start_date = as.Date(mindate) 
+    outcomes = switch(outcom,
+                      "Cases" = dfs, 
+                      "Deaths" = dfs1,
+                      "Hospitalized" = dfs2)
+    
+    db = outcomes %>% select(Date:CH)%>%
+        pivot_longer(.,cols = c(CH),names_to = "Canton",values_to = "Cases") 
+    db$region = db$Canton
+    db$cases = db$Cases
+    
+    p = ggplot(data = db, aes(x =Date,y = cases,colour = region, group = 1,))+
+        geom_line(size = 1.2)+
+        labs(y="Cumulative", x = "Date")+
+        theme(axis.title = element_text(face = "bold"),
+              legend.text = element_text(size = 14),
+              legend.title = element_blank())+
+        scale_x_date(limits = c(start_date,max_date2))
+    
+    events = event 
+    
+    for (i in events){
+        dates = switch (i,
+                        "Start confinement" = as.numeric(as.Date("2020-03-15")),
+                        "Second end confinement" = as.numeric(as.Date("2020-05-11")),
+                        "First end confinement" = as.numeric(as.Date("2020-04-27")),
+                        "Second start confinement*" = as.numeric(as.Date("2020-11-02")))
+        
+        p = p + geom_vline(xintercept = as.numeric(dates), color = "red", linetype = "dotted", size = 0.5)
+        #+annotate("text",x = dates,y = -1000,label = "name",color = "black",size = 5)
+        
+        
+    }
+    if (outcom == "Cases"){
+        colors = c("New tests per day" = "Darkred","New cases per day" = "Darkblue")
+        p = ggplot(data = dfs4, aes(x =date))+
+            geom_line(aes(y = new_cases,color = "New cases per day"),size = 1)+
+            geom_line(aes(y = n_tests, color = "New tests per day"),size = 1)+
+            labs(y="Cumulative", x = "Date")+
+            theme(axis.title = element_text(face = "bold"),
+                  legend.text = element_text(size = 14),
+                  legend.title = element_blank())+
+            labs(color = "Legend")+
+            scale_x_date(limits = c(start_date,max_date2))
+    }
+    h = 7.1
+    if (outcom == "Hospitalized"){
+        p = p+ geom_hline(yintercept = 1400, color = "black", linetype = "dotted", size = 0.5)+
+            annotate("text",label = "Hospital limit",x = as.Date("2020-06-20", "%Y-%m-%d"),y = 1490,color = "black",size = 5)
+    }
+    
+    ggplotly(p) %>%
+        layout(legend = list(orientation = "v", x = 1, y =0.5))
+}
+
 
 log_plots2 = function(mindate,outcom,event,canton){
     start_date = as.Date(mindate) 
@@ -193,8 +281,10 @@ log_plots2 = function(mindate,outcom,event,canton){
     p = ggplot(data = db, aes(x =Date,y = cases,colour = region, group = 1,))+
         geom_line()+
         labs(y="Cumulative", x = "Date")+
-        theme(axis.title = element_text(face = "bold"))+
-        scale_y_continuous(trans = "log10")+
+        theme(axis.title = element_text(face = "bold"),
+              legend.text = element_text(size = 14),
+              legend.title = element_blank())+
+        scale_y_log10()+
         scale_x_date(limits = c(start_date,max_date2))
     
     events = event 
@@ -203,14 +293,22 @@ log_plots2 = function(mindate,outcom,event,canton){
         dates = switch (i,
                         "Start confinement" = as.numeric(as.Date("2020-03-15")),
                         "Second end confinement" = as.numeric(as.Date("2020-05-11")),
-                        "First end confinement" = as.numeric(as.Date("2020-04-27")))
+                        "First end confinement" = as.numeric(as.Date("2020-04-27")),
+                        "Second start confinement*" = as.numeric(as.Date("2020-11-02")))
         
-        p = p + geom_vline(xintercept = dates, color = "red", linetype = "dotted", size = 0.5)
+        p = p + geom_vline(xintercept = as.numeric(dates), color = "red", linetype = "dotted", size = 0.5)
+        #+annotate("text",x = dates,y = -1000,label = "name",color = "black",size = 5)
         
         
     }
+    h = 7.1
+    if (outcom == "Hospitalized"){
+        p = p+ geom_hline(yintercept = 160, color = "black", linetype = "dotted", size = 0.5)+
+            annotate("text",label = "Hospital limit",x = as.Date("2020-06-20", "%Y-%m-%d"),y = 170,color = "black",size = 5)
+    }
     
-    ggplotly(p)
+    ggplotly(p) %>%
+        layout(legend = list(orientation = "v", x = 1, y =0.5))
 }
 
 
@@ -226,16 +324,16 @@ ui <- bootstrapPage(
                                 
                                 pickerInput("outcome_select", "Outcome:",
                                             choices = c("Cases","Deaths","Cases per 100'000","Deaths per 100'000"),
-                                            selected = c("Cases"),
+                                            selected = c("Cases per 100'000"),
                                             multiple = FALSE),
                                 pickerInput("event_select", "Events:",
-                                            choices = c("Start confinement","First end confinement","Second end confinement"),
-                                            selected = c("Start confinement"),
+                                            choices = c("Start confinement","First end confinement","Second end confinement","Second start confinement"),
+                                            selected = c("Start confinement","Second start confinement"),
                                             multiple = TRUE),
                                 pickerInput("country", "Country:",
                                             choices = as.character(cv_reduced[order(-cv_reduced$cases),]$country),
                                             selected =c(as.character(cv_reduced[order(-cv_reduced$cases),]$country)[1:7],"Switzerland"),
-                                            options = list(`actions-box` = TRUE,`none-selected-text` = "Please make a selection!"),
+                                            options = list(`actions-box` = TRUE,`none-selected-text` = "Please make a selection!", `live-search` = TRUE),
                                             multiple = TRUE),
                                 sliderInput("minimun_date","Minimun date:",
                                             min = as.Date(min_date,"%Y-%m-%d"),
@@ -248,9 +346,9 @@ ui <- bootstrapPage(
                             ),
                             mainPanel(
                                 tabsetPanel(
-                                    tabPanel("Cumulative",plotlyOutput("plotly_cumulative")),
-                                    tabPanel("New cases",plotlyOutput("plotly_new")),
-                                    tabPanel("Cumulative (log10)",plotlyOutput("plotly_log"))
+                                    tabPanel("Cumulative",plotlyOutput("plotly_cumulative",height = "600px")),
+                                    tabPanel("New cases",plotlyOutput("plotly_new",height = "600px")),
+                                    tabPanel("Cumulative (log10)",plotlyOutput("plotly_log",height = "600px"))
                                 )
                             )
                             
@@ -270,27 +368,33 @@ ui <- bootstrapPage(
                                                      selected = c("Cases"),
                                                      multiple = FALSE),
                                          pickerInput("event_select2", "Events:",
-                                                     choices = c("Start confinement","First end confinement","Second end confinement"),
-                                                     selected = c("Start confinement"),
+                                                     choices = c("Start confinement","First end confinement","Second end confinement","Second start confinement*"),
+                                                     selected = c("Start confinement","Second start confinement*"),
                                                      multiple = TRUE),
                                         pickerInput("canton", "Cantons:",
-                                                    choices = c("AG","AI","AR","BE","BL","BS","FR","GE","GL","JU","LU","NE","NW","OW","SG","SH","SO","SZ","TG","TI","UR","VD","VS","ZG","ZH"),
+                                                    choices = c("AG","AI","AR","BE","BL","BS","FR","GE","GL","JU","LU","NE","NW","OW","SG","SH","SO","SZ","TG","TI","UR","VD","VS","ZG","ZH","CH"),
                                                     selected =c("AG","AI","AR","BE","BL","BS","FR","GE","GL","JU","LU","NE","NW","OW","SG","SH","SO","SZ","TG","TI","UR","VD","VS","ZG","ZH"),
-                                                    options = list(`actions-box` = TRUE,`none-selected-text` = "Please make a selection!"),
+                                                    options = list(`actions-box` = TRUE,`none-selected-text` = "Please make a selection!", `live-search` = TRUE),
                                                     multiple = TRUE),
                                          sliderInput("minimun_date2","Minimun date:",
                                                      min = as.Date(min_date2,"%Y-%m-%d"),
                                                      max = as.Date(max_date2,"%Y-%m-%d"),
                                                      value = as.Date(min_date2),
                                                      timeFormat = "%d %b"),
-                                         "Select the Events, Outcome and plottings start dates to modify the plot. All the datasets used here are avaible from the OSFP."
+                                         "Select the Events, Outcome and plottings start dates to modify the plot. All the datasets used here are avaible from the OSFP.",
+                                            tags$br(),
+                                        tags$i(h6("* The second lockdown in Switzerland was less restrictive than the first one but we can also analyse the effect of this one."))
+                                        
+                                         
                                          
                                          
                             ),
                             mainPanel(
                                 tabsetPanel(
-                                    tabPanel("Cumulative",plotlyOutput("plotly_cumulative2")),
-                                    tabPanel("Cumulative (log10)",plotlyOutput("plotly_log2"))
+                                    tabPanel("Swiss global",plotlyOutput("swiss_global",height = "600px") ),
+                                    tabPanel("Cumulative",plotlyOutput("plotly_cumulative2",height = "600px")),
+                                    tabPanel("Cumulative (log10)",plotlyOutput("plotly_log2",height = "600px"))
+    
                                 )
                             )
                             
@@ -318,7 +422,9 @@ ui <- bootstrapPage(
                             "All over the app you could see some plots with data about the COVID-19 outbreak. The most basic analysis done as been comparing the number of total cases or new cases between country or cantons.
                             Therefore, I also want to go a little but further in the analysis by adding on the plots some keys date in Switzerland. The start confinement date correspond to when the Swiss politicians decided to 
                             close all markets said not essential to the life. The first end confinement was the date where the first not essential markets start to open again. The second end of the confinement was when almost all
-                            markets, schools, places where open and without to much restriction.",tags$br(),tags$br(),
+                            markets, schools, places where open and without to much restriction. The second lockdown start is based on the date of the French second lockdown. In Switzerland this last one is much less restrictive than the first one 
+                            but we will consider it also to see the effect on the curve.",tags$br(),tags$br(),
+                            
                             "For conclude, we can observe that the Swiss governement was prety fast in decision taking. Despite we don't knows really the effects of this rapidity in facts. We can also now observe a quite important
                             recovery of the numbers of cases in all the places where the confinement and the stricts mesures as been lifted. Thats may could explain why the world almost stop for 1 months. Therefore the cases is increasing 
                             in the last days, the numbers of deaths is not increasing at the same speed. My explanation for this is maybe now the people that became contamined by the virus is mostly young people and by that we know that the 
@@ -361,7 +467,12 @@ server  = function(input,output){
         log_plots(input$minimun_date, input$outcome_select,input$event_select,input$country)
     })
     
-    #plot canton data
+    #plot Swiss data
+    
+    output$swiss_global = renderPlotly({
+        swiss_global2(input$minimun_date2, input$outcome_select2,input$event_select2)
+    })
+    
     output$plotly_cumulative2 = renderPlotly({
         cumulative_plots2(input$minimun_date2, input$outcome_select2,input$event_select2,input$canton)
     })
@@ -376,9 +487,9 @@ server  = function(input,output){
         orig = options(width = 1000)
         data = switch(input$datasetchoice,
                       "World data" = dfc1,
-                      "Swiss data" = dfs)
+                      "Swiss data" = dfs[,1:28])
         
-        print(tail(data,n=100))
+        print(tail(data,n=20))
         options(orig)
     })
     
